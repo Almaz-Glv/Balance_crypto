@@ -106,20 +106,18 @@ def get_balances_for_specific_addresses():
     print(df.to_string(index=False))
 
 
-def get_recent_transactions(contract_address, api_key):
+def get_recent_transactions():
     """Получает последние транзакции для заданного контракта."""
-    api_url = 'https://api.polygonscan.com/api'
-
     # Получаем список транзакций токена
     params = {
         'module': 'account',
         'action': 'tokentx',
-        'contractaddress': contract_address,
+        'contractaddress': TOKEN_ADDRESS,
         'sort': 'desc',
-        'apikey': api_key
+        'apikey': API_KEY
     }
 
-    response = requests.get(api_url, params=params)
+    response = requests.get(API_URL, params=params)
     if response.status_code != 200:
         print(f'Ошибка: Сервер вернул код {response.status_code}')
         return []
@@ -137,13 +135,11 @@ def get_recent_transactions(contract_address, api_key):
     return data.get('result', [])
 
 
+@measure_time
 def get_top_10_addresses():
     """Возвращает топ 10 по балансу адресов."""
-    api_key = '6YZ353E9TU6TMTWYPQTMIG17D7156A534M'
-    contract_address = '0x1a9b54a3075119f1546c52ca0940551a6ce5d2d0'
-
     # Получаем последние транзакции
-    transactions = get_recent_transactions(contract_address, api_key)
+    transactions = get_recent_transactions()
     if not transactions:
         return
 
@@ -181,6 +177,55 @@ def get_top_10_addresses():
     print(df.to_string(index=False))
 
 
+def get_transaction_history(address):
+    """Получение истории транзакций для адреса."""
+    api_url = 'https://api.polygonscan.com/api'
+    api_key = '6YZ353E9TU6TMTWYPQTMIG17D7156A534M'
+
+    # Запрашиваем транзакции для данного адреса
+    params = {
+        "module": "account",
+        "action": "txlist",
+        "address": address,
+        "apikey": api_key
+    }
+
+    response = requests.get(api_url, params=params)
+
+    if response.status_code != 200:
+        print(f"Ошибка: Сервер вернул код {response.status_code}")
+        return
+
+    try:
+        data = response.json()
+    except ValueError as e:
+        print(f"Ошибка при декодировании JSON: {e}")
+        return
+
+    if data['status'] != '1':
+        print("Ошибка: Нет данных о транзакциях для этого адреса.")
+        return
+
+    # Отображаем транзакции
+    transactions = data['result']
+    if transactions:
+        for tx in transactions:
+            print(f"Hash: {tx['hash']}, from: {tx['from']}, to: {tx['to']}, value: {tx['value']}")
+    else:
+        print("Нет транзакций для этого адреса.")
+
+
+def get_token_info_for_address(address):
+    """Получение информации о токенах для адреса."""
+    try:
+        balance = token_contract.functions.balanceOf(Web3.to_checksum_address(address)).call()
+        formatted_balance = balance / (10 ** token_decimals)
+        print(f"Баланс токенов для адреса {address}: {formatted_balance} {token_symbol}")
+    except Exception as e:
+        print(f"Ошибка при получении информации о токенах: {str(e)}")
+
+
+@measure_time
 def get_address_info():
     """Работа с конкретным адресом."""
     user_input = input('Введите адрес: ')
@@ -224,8 +269,8 @@ def main():
         get_balances_for_specific_addresses()
     elif choice == '2':
         get_top_10_addresses()
-    elif choice =='3':
-        pass
+    elif choice == '3':
+        get_address_info()
     else:
         print('Неверный выбор. Пожалуйста, введите 1 или 2.')
 
