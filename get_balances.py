@@ -6,6 +6,9 @@ from web3 import Web3
 import pandas as pd
 
 
+API_URL = 'https://api.polygonscan.com/api'
+API_KEY = '6YZ353E9TU6TMTWYPQTMIG17D7156A534M'
+
 POLYGON_RPC_URL = 'https://polygon-rpc.com'
 web3 = Web3(Web3.HTTPProvider(POLYGON_RPC_URL))
 
@@ -103,12 +106,9 @@ def get_balances_for_specific_addresses():
     print(df.to_string(index=False))
 
 
-@measure_time
-def get_top_10_addresses():
-    """Возвращает топ 10 по балансу адресов."""
+def get_recent_transactions(contract_address, api_key):
+    """Получает последние транзакции для заданного контракта."""
     api_url = 'https://api.polygonscan.com/api'
-    api_key = '6YZ353E9TU6TMTWYPQTMIG17D7156A534M'
-    contract_address = '0x1a9b54a3075119f1546c52ca0940551a6ce5d2d0'
 
     # Получаем список транзакций токена
     params = {
@@ -120,25 +120,36 @@ def get_top_10_addresses():
     }
 
     response = requests.get(api_url, params=params)
-    # Проверка статуса ответа
     if response.status_code != 200:
         print(f'Ошибка: Сервер вернул код {response.status_code}')
-        return
+        return []
 
-    # Проверка содержимого ответа
     if not response.text:
         print('Ошибка: Пустой ответ от сервера')
-        return
+        return []
 
     try:
         data = response.json()
     except ValueError as e:
         print(f'Ошибка при декодировании JSON: {e}')
+        return []
+
+    return data.get('result', [])
+
+
+def get_top_10_addresses():
+    """Возвращает топ 10 по балансу адресов."""
+    api_key = '6YZ353E9TU6TMTWYPQTMIG17D7156A534M'
+    contract_address = '0x1a9b54a3075119f1546c52ca0940551a6ce5d2d0'
+
+    # Получаем последние транзакции
+    transactions = get_recent_transactions(contract_address, api_key)
+    if not transactions:
         return
 
     # Собираем уникальные адреса и их последние транзакции
     address_data = {}
-    for tx in data['result']:
+    for tx in transactions:
         address = tx['from']
         timestamp = int(tx['timeStamp'])
         address_data[address] = max(address_data.get(address, 0), timestamp)
@@ -147,8 +158,10 @@ def get_top_10_addresses():
         timestamp = int(tx['timeStamp'])
         address_data[address] = max(address_data.get(address, 0), timestamp)
 
+    # Получаем балансы для адресов
     balances = get_balances_for_addresses(address_data.keys())
 
+    # Составляем список с балансами и датами последних транзакций
     balances_with_dates = [
         (
             addr,
@@ -168,12 +181,39 @@ def get_top_10_addresses():
     print(df.to_string(index=False))
 
 
+def get_address_info():
+    """Работа с конкретным адресом."""
+    user_input = input('Введите адрес: ')
+    if not web3.is_address(user_input):
+        print("Неверный адрес!")
+        return
+
+    # Создаем меню для работы с адресом
+    print("\nЧто вы хотите узнать о адресе?")
+    print("1. Получить историю транзакций")
+    print("2. Получить информацию о токене на этом адресе")
+    print("3. Вернуться в основное меню")
+
+    choice = input('Введите номер действия (1, 2 или 3): ')
+
+    if choice == "1":
+        get_transaction_history(user_input)
+    elif choice == "2":
+        get_token_info_for_address(user_input)
+    elif choice == "3":
+        return
+    else:
+        print("Неверный выбор, попробуйте снова.")
+        get_address_info()  # Запросим снова, если выбор неверный
+
+
 def show_menu():
     """Меню выбора."""
     print('Выберите режим работы:')
     print('1. Получить балансы для конкретных адресов')
     print('2. Получить топ-10 адресов по балансу c датами транзакций')
-    choice = input('Введите номер режима (1 или 2): ')
+    print('3. Получение информации об определенном адресе')
+    choice = input('Введите номер режима (1, 2 или 3): ')
     return choice
 
 
@@ -184,6 +224,8 @@ def main():
         get_balances_for_specific_addresses()
     elif choice == '2':
         get_top_10_addresses()
+    elif choice =='3':
+        pass
     else:
         print('Неверный выбор. Пожалуйста, введите 1 или 2.')
 
