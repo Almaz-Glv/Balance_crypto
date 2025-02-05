@@ -19,6 +19,7 @@ TOKEN_ADDRESS_LOWER = '0x1a9b54a3075119f1546c52ca0940551a6ce5d2d0'
 
 TOKEN_ADDRESS = Web3.to_checksum_address(TOKEN_ADDRESS_LOWER)
 
+#
 TOKEN_ABI = [
     {
         'constant': True,
@@ -210,7 +211,7 @@ def get_transaction_history(address):
     transactions = data['result']
     if transactions:
         for tx in transactions:
-            print(f"Hash: {tx['hash']}, from: {tx['from']}, to: {tx['to']}, value: {tx['value']}")
+            print(f"Hash: {tx['hash']}, from: {tx['from']}, to: {tx['to']}, value: {int(tx['value']) / (10 ** token_decimals)}")
     else:
         print("Нет транзакций для этого адреса.")
 
