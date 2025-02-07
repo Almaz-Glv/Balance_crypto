@@ -7,7 +7,7 @@ import pandas as pd
 
 
 API_URL = 'https://api.polygonscan.com/api'
-API_KEY = '6YZ353E9TU6TMTWYPQTMIG17D7156A534M'
+API_KEY = 'Введите свой ключ api'
 
 POLYGON_RPC_URL = 'https://polygon-rpc.com'
 web3 = Web3(Web3.HTTPProvider(POLYGON_RPC_URL))
@@ -181,7 +181,7 @@ def get_top_10_addresses():
 def get_transaction_history(address):
     """Получение истории транзакций для адреса."""
     api_url = 'https://api.polygonscan.com/api'
-    api_key = '6YZ353E9TU6TMTWYPQTMIG17D7156A534M'
+    api_key = 'Введите свой ключ api'
 
     # Запрашиваем транзакции для данного адреса
     params = {
